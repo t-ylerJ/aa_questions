@@ -134,7 +134,7 @@ class Questions
 end
 
 class QuestionFollows
-
+  attr_accessor :id, :user_id, :question_id
     def self.all
         data = QuestionsDBConnection.instance.execute("SELECT * from question_follows")
         data.map{|datum| QuestionFollows.new(datum)}
@@ -182,5 +182,211 @@ class QuestionFollows
             id = ?
         SQL
       end
+end
 
+class Replies
+  attr_accessor :id, :question_id, :parent_reply_id, :author_id, :body
+  def self.all
+    data = QuestionsDBConnection.instance.execute("SELECT * from replies")
+    data.map{|datum| Replies.new(datum)}
+  end
+
+  def self.find_by_id(id)
+    data = QuestionsDBConnection.instance.execute(<<-SQL, id)
+        SELECT
+        *
+        FROM
+        replies
+        WHERE
+        id = ?
+    SQL
+    return nil unless data.length > 0
+    Replies.new(data.first)
+
+  end
+
+  def initialize(options)
+      @id = options['id']
+      @question_id = options['question_id']
+      @parent_reply_id = options['parent_reply_id']
+      @author_id = options['author_id']
+      @body = options['body']
+  end
+
+  def create
+        raise "#{self} already in database" if self.id
+        QuestionsDBConnection.instance.execute(<<-SQL,self.question_id, self.parent_reply_id, self.author_id, self.body)
+          INSERT INTO
+            replies (question_id, parent_reply_id, author_id, body)
+          VALUES
+            (?, ?, ?, ?)
+        SQL
+        self.id = QuestionsDBConnection.instance.last_insert_row_id
+  end
+
+  def update
+        raise "#{self} not in database" unless self.id
+        QuestionsDBConnection.instance.execute(<<-SQL,self.question_id, self.parent_reply_id, self.author_id, self.body, self.id)
+          UPDATE
+            replies
+          SET
+            question_id = ?, parent_reply_id = ?, author_id = ?, body = ?
+          WHERE
+            id = ?
+        SQL
+  end
+
+end
+
+class QuestionLikes
+  attr_accessor :id, :user_id, :question_id
+    def self.all
+        data = QuestionsDBConnection.instance.execute("SELECT * from question_likes")
+        data.map{|datum| QuestionLikes.new(datum)}
+    end
+
+    def self.find_by_id(id)
+        data = QuestionsDBConnection.instance.execute(<<-SQL, id)
+            SELECT
+            *
+            FROM
+            question_likes
+            WHERE
+            id = ?
+        SQL
+        return nil unless data.length > 0
+        QuestionLikes.new(data.first)
+
+    end
+
+    def initialize(options)
+        @id = options['id']
+        @user_id = options['user_id']
+        @question_id = options['question_id']
+    end
+
+    def create
+        raise "#{self} already in database" if self.id
+        QuestionsDBConnection.instance.execute(<<-SQL, self.user_id, self.question_id)
+          INSERT INTO
+          question_likes (user_id, question_id)
+          VALUES
+            (?, ?)
+        SQL
+        self.id = QuestionsDBConnection.instance.last_insert_row_id
+      end
+
+      def update
+        raise "#{self} not in database" unless self.id
+        QuestionsDBConnection.instance.execute(<<-SQL, self.user_id, self.question_id, self.id)
+          UPDATE
+            question_likes
+          SET
+            user_id = ?, question_id = ?
+          WHERE
+            id = ?
+        SQL
+      end
+end
+
+class Tags
+  attr_accessor :id, :name
+    def self.all
+        data = QuestionsDBConnection.instance.execute("SELECT * from tags")
+        data.map{|datum| Tags.new(datum)}
+    end
+
+    def self.find_by_id(id)
+        data = QuestionsDBConnection.instance.execute(<<-SQL, id)
+            SELECT
+            *
+            FROM
+            tags
+            WHERE
+            id = ?
+        SQL
+        return nil unless data.length > 0
+        Tags.new(data.first)
+
+    end
+
+    def initialize(options)
+        @id = options['id']
+        @name = options['name']
+    end
+
+    def create
+        raise "#{self} already in database" if self.id
+        QuestionsDBConnection.instance.execute(<<-SQL, self.name)
+          INSERT INTO
+          tags (name)
+          VALUES
+            (?)
+        SQL
+        self.id = QuestionsDBConnection.instance.last_insert_row_id
+      end
+
+      def update
+        raise "#{self} not in database" unless self.id
+        QuestionsDBConnection.instance.execute(<<-SQL, self.name, self.id)
+          UPDATE
+            tags
+          SET
+            name = ?
+          WHERE
+            id = ?
+        SQL
+      end
+end
+
+
+class QuestionTags
+  attr_accessor :id, :question_id, :tag_id
+    def self.all
+        data = QuestionsDBConnection.instance.execute("SELECT * from question_tags")
+        data.map{|datum| QuestionTags.new(datum)}
+    end
+
+    def self.find_by_id(id)
+        data = QuestionsDBConnection.instance.execute(<<-SQL, id)
+            SELECT
+            *
+            FROM
+            question_tags
+            WHERE
+            id = ?
+        SQL
+        return nil unless data.length > 0
+        QuestionTags.new(data.first)
+
+    end
+
+    def initialize(options)
+        @id = options['id']
+        @tag_id = options['tag_id']
+        @question_id = options['question_id']
+    end
+
+    def create
+        raise "#{self} already in database" if self.id
+        QuestionsDBConnection.instance.execute(<<-SQL, self.question_id, self.tag_id)
+          INSERT INTO
+          question_tags (question_id, tag_id)
+          VALUES
+            (?, ?)
+        SQL
+        self.id = QuestionsDBConnection.instance.last_insert_row_id
+      end
+
+      def update
+        raise "#{self} not in database" unless self.id
+        QuestionsDBConnection.instance.execute(<<-SQL, self.question_id, self.tag_id, self.id)
+          UPDATE
+            question_tags
+          SET
+            question_id = ?, tag_id = ?
+          WHERE
+            id = ?
+        SQL
+      end
 end
