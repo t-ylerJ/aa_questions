@@ -2,6 +2,8 @@ require 'sqlite3'
 require 'singleton'
 
 class QuestionsDBConnection < SQLite3::Database
+#so we don't have multiple sets of data; any changes will refer to the same table instead of created new one
+
   include Singleton
 
   def initialize
@@ -15,7 +17,9 @@ class Users
     attr_accessor :id, :fname, :lname
 
     def self.all
+      #can only call singleton with instance. execute runs query and returns output
         data = QuestionsDBConnection.instance.execute("SELECT * from users")
+        #output is in hash form,, this changes to class objects
         data.map{|datum| Users.new(datum)}
     end
 
@@ -28,6 +32,8 @@ class Users
             WHERE
             id = ?
         SQL
+        #if code is multiple lines, we use the data.map to iterate. if not, and one line returns, we just
+        #query that one object e.g. users.new
         return nil unless data.length > 0
         Users.new(data.first)
 
@@ -61,8 +67,10 @@ class Users
           VALUES
             (?, ?)
         SQL
+        
         self.id = QuestionsDBConnection.instance.last_insert_row_id
     end
+
 
     def update
         raise "#{self} not in database" unless self.id
