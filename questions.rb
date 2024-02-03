@@ -171,7 +171,39 @@ class QuestionFollows
         data.map{|datum| QuestionFollows.new(datum)}
     end
 
+    def self.followers_for_question_id(question_id)
+      data = QuestionsDBConnection.instance.execute(<<-SQL, question_id)
+      SELECT 
+        users. *
+      FROM
+        question_follows
+      JOIN
+        users ON question_follows.user_id = users.id
+      WHERE
+        question_id = ? 
+      SQL
+
+      data.map{|datum| Users.new(datum)}
+    end
+
+    def self.followed_questions_for_user_id(user_id)
+      data = QuestionsDBConnection.instance.execute(<<-SQL, user_id)
+      SELECT 
+        questions. *
+      FROM
+        question_follows
+      JOIN
+        questions ON question_follows.question_id = questions.id
+      WHERE
+        user_id = ? 
+      SQL
+
+      data.map{|datum| Questions.new(datum)}
+    end
+
     def self.find_by_id(id)
+
+      
         data = QuestionsDBConnection.instance.execute(<<-SQL, id)
             SELECT
             *
@@ -294,6 +326,32 @@ class Replies
             id = ?
         SQL
   end
+
+  def author
+    author_data =Users.find_by_id(self.author_id)
+    puts "#{author_data.fname} #{author_data.lname}"
+  end
+
+  def question
+    Questions.find_by_id(self.question_id)
+  end
+
+  def parent_reply
+    Replies.find_by_id(self.parent_reply_id)
+  end
+
+  def child_replies
+    data = QuestionsDBConnection.instance.execute(<<-SQL, self.id)
+      SELECT *
+      FROM
+        replies
+      WHERE
+        parent_reply_id = ?
+    SQL
+    #extract all replies that have that ID
+    data.map {|datum| Replies.new(datum)}
+  end
+
 
 end
 
