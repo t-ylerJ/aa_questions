@@ -83,6 +83,10 @@ class Users
     def authored_replies
         Replies.find_by_user_id(self.id)
     end
+
+    def followed_questions
+        QuestionFollows.followed_questions_for_user_id(self.id)
+    end
 end
 
 class Questions
@@ -120,6 +124,10 @@ class Questions
     return nil unless data.length > 0
     Questions.new(data.first)
 
+    end
+
+    def self.most_followed(n)
+        QuestionFollows.most_followed_questions(n)
     end
 
     def initialize(options)
@@ -162,6 +170,10 @@ class Questions
         Replies.find_by_question_id(self.id)
       end
 
+      def followers
+        QuestionFollows.followers_for_question_id(self.id)
+      end
+
 end
 
 class QuestionFollows
@@ -173,14 +185,14 @@ class QuestionFollows
 
     def self.followers_for_question_id(question_id)
       data = QuestionsDBConnection.instance.execute(<<-SQL, question_id)
-      SELECT 
+      SELECT
         users. *
       FROM
         question_follows
       JOIN
         users ON question_follows.user_id = users.id
       WHERE
-        question_id = ? 
+        question_id = ?
       SQL
 
       data.map{|datum| Users.new(datum)}
@@ -188,14 +200,14 @@ class QuestionFollows
 
     def self.followed_questions_for_user_id(user_id)
       data = QuestionsDBConnection.instance.execute(<<-SQL, user_id)
-      SELECT 
+      SELECT
         questions. *
       FROM
         question_follows
       JOIN
         questions ON question_follows.question_id = questions.id
       WHERE
-        user_id = ? 
+        user_id = ?
       SQL
 
       data.map{|datum| Questions.new(datum)}
@@ -203,7 +215,7 @@ class QuestionFollows
 
     def self.find_by_id(id)
 
-      
+
         data = QuestionsDBConnection.instance.execute(<<-SQL, id)
             SELECT
             *
@@ -215,6 +227,23 @@ class QuestionFollows
         return nil unless data.length > 0
         QuestionFollows.new(data.first)
 
+    end
+
+    def self.most_followed_questions(n)
+        num = n - 1
+        data = QuestionsDBConnection.instance.execute(<<-SQL, num)
+            SELECT
+            question_id, COUNT(user_id) as num_user_followed
+            FROM
+            question_follows
+            GROUP BY
+            question_id
+            ORDER BY
+            COUNT(user_id) DESC
+            LIMIT 1
+            OFFSET ?
+        SQL
+        Questions.find_by_id(data.first["question_id"])
     end
 
     def initialize(options)
