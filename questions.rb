@@ -62,9 +62,9 @@ class Users
             (?, ?)
         SQL
         self.id = QuestionsDBConnection.instance.last_insert_row_id
-      end
+    end
 
-      def update
+    def update
         raise "#{self} not in database" unless self.id
         QuestionsDBConnection.instance.execute(<<-SQL, self.fname, self.lname, self.id)
           UPDATE
@@ -74,8 +74,15 @@ class Users
           WHERE
             id = ?
         SQL
-      end
+    end
 
+    def authored_questions
+        Questions.find_by_author_id(self.id)
+    end
+
+    def authored_replies
+        Replies.find_by_user_id(self.id)
+    end
 end
 
 class Questions
@@ -98,6 +105,20 @@ class Questions
         SQL
         return nil unless data.length > 0
         Questions.new(data.first)
+
+    end
+
+    def self.find_by_author_id(author_id)
+        data = QuestionsDBConnection.instance.execute(<<-SQL, author_id)
+        SELECT
+        *
+        FROM
+        questions
+        WHERE
+        author_id = ?
+    SQL
+    return nil unless data.length > 0
+    Questions.new(data.first)
 
     end
 
@@ -129,6 +150,16 @@ class Questions
           WHERE
             id = ?
         SQL
+      end
+
+      def author
+        author_data =Users.find_by_id(self.author_id)
+        puts "#{author_data.fname} #{author_data.lname}"
+      end
+
+
+      def replies
+        Replies.find_by_question_id(self.id)
       end
 
 end
@@ -202,6 +233,34 @@ class Replies
     SQL
     return nil unless data.length > 0
     Replies.new(data.first)
+
+  end
+
+  def self.find_by_user_id(author_id)
+    data = QuestionsDBConnection.instance.execute(<<-SQL, author_id)
+        SELECT
+        *
+        FROM
+        replies
+        WHERE
+        author_id = ?
+    SQL
+    return nil unless data.length > 0
+    data.map{|datum| Replies.new(datum)}
+
+  end
+
+  def self.find_by_question_id(question_id)
+    data = QuestionsDBConnection.instance.execute(<<-SQL, question_id)
+        SELECT
+        *
+        FROM
+        replies
+        WHERE
+        question_id = ?
+    SQL
+    return nil unless data.length > 0
+    data.map{|datum| Replies.new(datum)}
 
   end
 
